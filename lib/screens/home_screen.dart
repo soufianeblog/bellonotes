@@ -2,6 +2,7 @@
 // width and hosts the folder sidebar, notes list, and the right-hand pane
 // (note editor, Settings, or About). Owns sidebar sizing and which pane shows.
 import 'dart:io';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
@@ -64,6 +65,23 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  /// True on the desktop platforms that draw the custom in-app title bar.
+  /// Mobile platforms (Android/iOS) instead get a Material [AppBar].
+  ///
+  /// Uses [defaultTargetPlatform] (rather than `dart:io`'s [Platform]) so the
+  /// chrome is consistent with Flutter's platform model and can be exercised in
+  /// widget tests via `debugDefaultTargetPlatformOverride`.
+  bool get _isDesktopPlatform {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -77,11 +95,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ─── DESKTOP ───
   Widget _buildDesktopLayout() {
-    final hasWindowBar =
-        Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+    final hasWindowBar = _isDesktopPlatform;
 
     return Scaffold(
-      body: Column(
+      // SafeArea keeps the sidebars/editor clear of the status bar/notch on
+      // large Android tablets (which reach this layout but have no title bar).
+      // On desktop the safe-area insets are zero, so this is a no-op there.
+      body: SafeArea(
+        child: Column(
         children: [
           if (hasWindowBar) _buildCustomTitleBar(),
           Expanded(
@@ -127,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -149,7 +171,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Container(
       height: 38,
-      padding: const EdgeInsets.only(left: 78),
+      // Reserve space for the macOS traffic-light buttons, which overlay the
+      // top-left corner because the window uses a full-size content view. On
+      // Windows/Linux the min/max/close controls live in the native title bar
+      // above this strip, so no left reservation is needed there.
+      padding: EdgeInsets.only(left: Platform.isMacOS ? 78 : 12),
       color: theme.colorScheme.surfaceContainerLowest,
       child: Row(
         children: [
@@ -274,33 +300,81 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // ─── TABLET ───
+  // ─── TABLET (split: notes list + editor, 600–900px) ───
   Widget _buildTabletLayout() {
+    final isDesktop = _isDesktopPlatform;
+    final s = S.of(context);
+
     return Scaffold(
-      body: Column(
-        children: [
-          if (Platform.isMacOS || Platform.isWindows || Platform.isLinux)
-            _buildCustomTitleBar(),
-          Expanded(
-            child: Row(
-              children: [
-                SizedBox(
-                  width: _notesSidebarWidth,
-                  child: const NotesSidebar(),
-                ),
-                _buildResizeHandle(
-                  onDrag: (delta) {
-                    setState(() {
-                      _notesSidebarWidth = (_notesSidebarWidth + delta)
-                          .clamp(_minSidebarWidth, _maxNotesSidebarWidth);
-                    });
+      key: _scaffoldKey,
+      // Desktop platforms use the custom in-window title bar; mobile platforms
+      // (where this layout is reached in landscape / on small tablets) need a
+      // real AppBar so the folder drawer, "new note" and settings are reachable
+      // and the content sits below the status bar.
+      appBar: isDesktop
+          ? null
+          : AppBar(
+              titleSpacing: 0,
+              title: Text(_sectionTitle(context),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 18)),
+              leading: IconButton(
+                icon: const Icon(Icons.menu),
+                tooltip: s.folders,
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: s.newNote,
+                  onPressed: () {
+                    final fid =
+                        context.read<NotesProvider>().selectedFolderId;
+                    context.read<NotesProvider>().createNote(
+                        folderId:
+                            (fid == 'all' || fid == 'trash') ? null : fid);
                   },
                 ),
-                Expanded(child: _mainPane()),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  tooltip: s.settings,
+                  onPressed: () => _openSettings(context),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.info_outline),
+                  tooltip: s.about,
+                  onPressed: () => _openAbout(context),
+                ),
               ],
             ),
-          ),
-        ],
+      body: SafeArea(
+        // On mobile the AppBar already clears the status bar, so only guard the
+        // sides/bottom there; on desktop the custom title bar must reach the top.
+        top: isDesktop,
+        child: Column(
+          children: [
+            if (isDesktop) _buildCustomTitleBar(),
+            Expanded(
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: _notesSidebarWidth,
+                    child: const NotesSidebar(),
+                  ),
+                  _buildResizeHandle(
+                    onDrag: (delta) {
+                      setState(() {
+                        _notesSidebarWidth = (_notesSidebarWidth + delta)
+                            .clamp(_minSidebarWidth, _maxNotesSidebarWidth);
+                      });
+                    },
+                  ),
+                  Expanded(child: _mainPane()),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
       drawer: Drawer(
         child: FolderSidebar(

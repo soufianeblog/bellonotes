@@ -216,6 +216,18 @@ Win32Window::MessageHandler(HWND hwnd,
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);
       return 0;
+
+    case WM_GETMINMAXINFO: {
+      // Enforce a sensible minimum window size (DPI-scaled) so the responsive
+      // UI never collapses into an unusable sliver. 800x600 logical pixels
+      // comfortably fits the tablet/desktop layouts.
+      auto* info = reinterpret_cast<MINMAXINFO*>(lparam);
+      UINT dpi = GetDpiForWindow(hwnd);
+      double scale = dpi ? dpi / 96.0 : 1.0;
+      info->ptMinTrackSize.x = static_cast<LONG>(800 * scale);
+      info->ptMinTrackSize.y = static_cast<LONG>(600 * scale);
+      return 0;
+    }
   }
 
   return DefWindowProc(window_handle_, message, wparam, lparam);

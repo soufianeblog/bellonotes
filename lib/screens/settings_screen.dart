@@ -165,9 +165,12 @@ class SettingsScreen extends StatelessWidget {
   Widget _buildTitleBar(BuildContext context, S s) {
     final theme = Theme.of(context);
     final embedded = onClose != null;
+    // Only a full-window macOS title bar needs to clear the traffic lights; an
+    // embedded pane (and Windows/Linux) does not.
+    final leftPad = embedded ? 8.0 : (Platform.isMacOS ? 78.0 : 12.0);
     return Container(
       height: 38,
-      padding: EdgeInsets.only(left: embedded ? 8 : 78),
+      padding: EdgeInsets.only(left: leftPad),
       color: theme.colorScheme.surfaceContainerLowest,
       child: Row(children: [
         IconButton(
@@ -185,7 +188,8 @@ class SettingsScreen extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurface)),
         const Spacer(),
-        const SizedBox(width: 78),
+        // Balance the leading close button + padding so the title stays centred.
+        SizedBox(width: leftPad + 36),
       ]),
     );
   }
