@@ -20,7 +20,16 @@ class NotesSidebar extends StatelessWidget {
   final bool mobileMode;
   final void Function(Note note)? onNoteTap;
 
-  const NotesSidebar({super.key, this.mobileMode = false, this.onNoteTap});
+  /// Called after the in-list "new note" button creates a note, so the host
+  /// (mobile) can open the editor. Null on desktop/tablet, where the editor
+  /// already lives in the right pane.
+  final VoidCallback? onNoteCreated;
+
+  const NotesSidebar(
+      {super.key,
+      this.mobileMode = false,
+      this.onNoteTap,
+      this.onNoteCreated});
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +114,7 @@ class NotesSidebar extends StatelessWidget {
                     if (context.mounted) {
                       context.read<FoldersProvider>().refreshCounts();
                     }
+                    onNoteCreated?.call();
                   },
                   padding: const EdgeInsets.all(4),
                   constraints:

@@ -28,6 +28,16 @@ class NotesProvider extends ChangeNotifier {
     _sortOrder = order;
   }
 
+  // Id of the most recently created note. The editor reads (and clears) this
+  // once to auto-focus the writing area so a new note can be typed into
+  // immediately. Cleared after it's consumed so it only fires on creation.
+  String? _justCreatedNoteId;
+  String? consumeJustCreatedNoteId() {
+    final id = _justCreatedNoteId;
+    _justCreatedNoteId = null;
+    return id;
+  }
+
   List<Note> get notes => _notes;
   List<Note> get trashedNotes => _trashedNotes;
   Note? get selectedNote => _selectedNote;
@@ -143,6 +153,7 @@ class NotesProvider extends ChangeNotifier {
       _applySort(_notes);
     }
     _selectedNote = note;
+    _justCreatedNoteId = note.id;
     notifyListeners();
     return note;
   }

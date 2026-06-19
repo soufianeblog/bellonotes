@@ -18,8 +18,17 @@ class FolderSidebar extends StatefulWidget {
   final VoidCallback? onOpenSettings;
   final VoidCallback? onOpenAbout;
 
+  /// Called after the "new note" button creates a note, so the host (mobile)
+  /// can open the editor. Null on desktop, where the editor is already shown
+  /// in the right pane.
+  final VoidCallback? onNoteCreated;
+
   const FolderSidebar(
-      {super.key, this.onNavigate, this.onOpenSettings, this.onOpenAbout});
+      {super.key,
+      this.onNavigate,
+      this.onOpenSettings,
+      this.onOpenAbout,
+      this.onNoteCreated});
 
   @override
   State<FolderSidebar> createState() => _FolderSidebarState();
@@ -221,13 +230,14 @@ class _FolderSidebarState extends State<FolderSidebar> {
           IconButton(
             icon: const Icon(Icons.add, size: 18),
             tooltip: s.newNote,
-            onPressed: () {
+            onPressed: () async {
               final notesProvider = context.read<NotesProvider>();
               final folderId = notesProvider.selectedFolderId;
-              notesProvider.createNote(
+              await notesProvider.createNote(
                   folderId: (folderId == 'all' || folderId == 'trash')
                       ? null
                       : folderId);
+              widget.onNoteCreated?.call();
             },
             padding: const EdgeInsets.all(4),
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),

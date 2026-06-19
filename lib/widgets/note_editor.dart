@@ -183,8 +183,17 @@ class _NoteEditorState extends State<NoteEditor> with WidgetsBindingObserver {
         const TextSelection.collapsed(offset: 0), ChangeSource.local);
 
     _suppressChanges = false;
+
+    // Auto-focus the writing area when this note was just created from a "new
+    // note" button, so the user can start typing immediately. The provider
+    // hands the id over exactly once.
+    final justCreated =
+        context.read<NotesProvider>().consumeJustCreatedNoteId() == note.id;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _highlightSearchInEditor();
+      if (!mounted) return;
+      _highlightSearchInEditor();
+      if (justCreated) _editorFocusNode.requestFocus();
     });
   }
 

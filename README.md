@@ -6,6 +6,8 @@ account and no cloud lock-in. Part of [bellocloud.com](https://bellocloud.com).
 
 > Open source, made by [@soufianeblog](https://x.com/soufianeblog).
 
+[![Donate](https://img.shields.io/badge/Donate-%E2%9D%A4%EF%B8%8F%20PayPal-0070BA?logo=paypal&logoColor=white)](http://paypal.me/paysoufiane)
+
 ---
 
 ## Features
@@ -143,6 +145,15 @@ public classes and methods carry doc comments.
 Issues and pull requests are welcome. Please run `flutter analyze` and
 `flutter test` before opening a PR, and keep the existing comment style
 (a one-line purpose header per file, doc comments on public APIs).
+
+## Support / Donate
+
+Bello Notes is free and open source. If it's useful to you and you'd like to
+support its development, you can buy me a coffee:
+
+[![Donate](https://img.shields.io/badge/Donate-%E2%9D%A4%EF%B8%8F%20PayPal-0070BA?logo=paypal&logoColor=white)](http://paypal.me/paysoufiane)
+
+> ❤️ [paypal.me/paysoufiane](http://paypal.me/paysoufiane)
 
 ## License
 

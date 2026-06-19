@@ -27,6 +27,7 @@ class AboutScreen extends StatelessWidget {
   static const String xUrl = 'https://x.com/soufianeblog';
   static const String websiteUrl = 'https://bellocloud.com';
   static const String repoUrl = 'https://github.com/soufianeblog/bellonotes';
+  static const String donateUrl = 'http://paypal.me/paysoufiane';
 
   /// Opens [url] in the platform's default browser, ignoring failures (a dead
   /// link should never crash the page).
@@ -84,6 +85,17 @@ class AboutScreen extends StatelessWidget {
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodyMedium?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant)),
+                      ),
+                      const SizedBox(height: 18),
+                      // Support the project via PayPal.
+                      FilledButton.icon(
+                        onPressed: () => _open(donateUrl),
+                        icon: const Text('❤️', style: TextStyle(fontSize: 16)),
+                        label: const Text('Donate'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                        ),
                       ),
                     ],
                   ),

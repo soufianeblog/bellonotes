@@ -300,6 +300,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Push the full-screen note editor (mobile). The editor auto-focuses the
+  /// writing area when it opens onto a freshly created note.
+  void _openMobileEditor() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+          builder: (_) => _MobileEditorScreen(
+                onBack: () => Navigator.of(context).pop(),
+              )),
+    );
+  }
+
   // ─── TABLET (split: notes list + editor, 600–900px) ───
   Widget _buildTabletLayout() {
     final isDesktop = _isDesktopPlatform;
@@ -379,6 +390,8 @@ class _HomeScreenState extends State<HomeScreen> {
       drawer: Drawer(
         child: FolderSidebar(
           onNavigate: () => Navigator.of(context).maybePop(),
+          // Tablet shows the editor in the right pane, so just close the drawer.
+          onNoteCreated: () => Navigator.of(context).maybePop(),
           onOpenSettings: () {
             Navigator.of(context).maybePop();
             setState(() {
@@ -420,12 +433,7 @@ class _HomeScreenState extends State<HomeScreen> {
               final fid = provider.selectedFolderId;
               context.read<NotesProvider>().createNote(
                   folderId: (fid == 'all' || fid == 'trash') ? null : fid);
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => _MobileEditorScreen(
-                          onBack: () => Navigator.of(context).pop(),
-                        )),
-              );
+              _openMobileEditor();
             },
           ),
           IconButton(
@@ -440,14 +448,8 @@ class _HomeScreenState extends State<HomeScreen> {
       drawerEdgeDragWidth: 60,
       body: NotesSidebar(
         mobileMode: true,
-        onNoteTap: (note) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-                builder: (_) => _MobileEditorScreen(
-                      onBack: () => Navigator.of(context).pop(),
-                    )),
-          );
-        },
+        onNoteTap: (note) => _openMobileEditor(),
+        onNoteCreated: _openMobileEditor,
       ),
     );
   }
@@ -481,6 +483,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: FolderSidebar(
                 onNavigate: () {
                   Navigator.of(context).pop();
+                },
+                onNoteCreated: () {
+                  // Close the drawer, then open the editor on the new note.
+                  Navigator.of(context).pop();
+                  _openMobileEditor();
                 },
               ),
             ),
