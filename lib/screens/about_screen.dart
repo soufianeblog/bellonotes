@@ -42,8 +42,12 @@ class AboutScreen extends StatelessWidget {
     final s = S.of(context);
     final theme = Theme.of(context);
     final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+    // Pushed as a standalone route on mobile (not embedded, not desktop): give
+    // it a real AppBar so there's a back button.
+    final isMobileRoute = !isDesktop && onClose == null;
 
     return Scaffold(
+      appBar: isMobileRoute ? AppBar(title: Text(s.about)) : null,
       body: Column(
         children: [
           if (isDesktop || onClose != null) _buildTitleBar(context, s),

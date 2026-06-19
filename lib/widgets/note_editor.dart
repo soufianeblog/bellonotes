@@ -1106,13 +1106,17 @@ class _NoteEditorState extends State<NoteEditor> with WidgetsBindingObserver {
 
     return Positioned(
       top: 8,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: Material(
-          elevation: 6,
-          borderRadius: BorderRadius.circular(12),
-          color: theme.colorScheme.surfaceContainerHighest,
+      left: 12,
+      right: 12,
+      child: Material(
+        elevation: 6,
+        borderRadius: BorderRadius.circular(12),
+        color: theme.colorScheme.surfaceContainerHighest,
+        clipBehavior: Clip.antiAlias,
+        // Horizontally scrollable so the controls never overflow on narrow
+        // (phone) widths; on wider screens the row simply fills the bar.
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             child: Row(mainAxisSize: MainAxisSize.min, children: [

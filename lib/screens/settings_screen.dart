@@ -25,8 +25,12 @@ class SettingsScreen extends StatelessWidget {
     final settings = context.watch<AppSettings>();
     final s = S.of(context);
     final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+    // Pushed as a standalone route on mobile (not embedded, not desktop): give
+    // it a real AppBar so there's a back button.
+    final isMobileRoute = !isDesktop && onClose == null;
 
     return Scaffold(
+      appBar: isMobileRoute ? AppBar(title: Text(s.settings)) : null,
       body: Column(
         children: [
           if (isDesktop || onClose != null) _buildTitleBar(context, s),
@@ -259,10 +263,15 @@ class SettingsScreen extends StatelessWidget {
         const Icon(Icons.palette_outlined),
         const SizedBox(width: 16),
         Text(s.themeColor, style: const TextStyle(fontSize: 14)),
-        const Spacer(),
-        Wrap(
-          spacing: 8,
-          children: [
+        const SizedBox(width: 16),
+        // Expanded gives the Wrap a bounded width so the swatches flow onto a
+        // second row on narrow screens instead of overflowing horizontally.
+        Expanded(
+          child: Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
             for (final c in presets)
               GestureDetector(
                 onTap: () => settings.setSeedColor(c),
@@ -284,7 +293,8 @@ class SettingsScreen extends StatelessWidget {
                       : null,
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ]),
     );

@@ -435,24 +435,19 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       drawer: _buildMobileDrawer(),
-      body: GestureDetector(
-        onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity != null &&
-              details.primaryVelocity! < -300) {
-            _scaffoldKey.currentState?.openDrawer();
-          }
+      // Widen the edge zone so a swipe in from the left edge reliably opens the
+      // folder drawer (Scaffold handles the left-edge drag gesture natively).
+      drawerEdgeDragWidth: 60,
+      body: NotesSidebar(
+        mobileMode: true,
+        onNoteTap: (note) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (_) => _MobileEditorScreen(
+                      onBack: () => Navigator.of(context).pop(),
+                    )),
+          );
         },
-        child: NotesSidebar(
-          mobileMode: true,
-          onNoteTap: (note) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => _MobileEditorScreen(
-                        onBack: () => Navigator.of(context).pop(),
-                      )),
-            );
-          },
-        ),
       ),
     );
   }
