@@ -41,20 +41,29 @@ account and no cloud lock-in. Part of [bellocloud.com](https://bellocloud.com).
 ## Install (one line)
 
 The installer scripts bootstrap everything they need — Flutter and the platform
-build tools — then build and install the app. They prompt before installing any
-tool and before placing the app on your system. Pass the unattended flag
-(`--yes` / `-Yes`) to skip prompts.
+build tools — then build and install the app. By default they prompt before
+installing any tool and before placing the app on your system. Each example
+below comes in two forms: **interactive** (asks before each step) and
+**unattended** (passes `--yes` / `-Yes` to assume "yes" to every prompt).
 
 ### macOS / Linux
 
 ```bash
+# Interactive
 curl -fsSL https://raw.githubusercontent.com/soufianeblog/bellonotes/main/scripts/install.sh | bash
+
+# Unattended (note the `-s --` to forward the flag to the script)
+curl -fsSL https://raw.githubusercontent.com/soufianeblog/bellonotes/main/scripts/install.sh | bash -s -- --yes
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
+# Interactive
 irm https://raw.githubusercontent.com/soufianeblog/bellonotes/main/scripts/install.ps1 | iex
+
+# Unattended (build a script block so the -Yes flag can be passed)
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/soufianeblog/bellonotes/main/scripts/install.ps1))) -Yes
 ```
 
 ### Android
@@ -62,8 +71,13 @@ irm https://raw.githubusercontent.com/soufianeblog/bellonotes/main/scripts/insta
 From a checkout (with a phone connected and USB debugging enabled):
 
 ```bash
-./scripts/install.sh --platform android        # macOS / Linux
-.\scripts\install.ps1 -Platform android         # Windows
+# Interactive
+./scripts/install.sh --platform android         # macOS / Linux
+.\scripts\install.ps1 -Platform android          # Windows
+
+# Unattended
+./scripts/install.sh --platform android --yes    # macOS / Linux
+.\scripts\install.ps1 -Platform android -Yes      # Windows
 ```
 
 The script builds a release APK and, if a device is detected over `adb`, offers
