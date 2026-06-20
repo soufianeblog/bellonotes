@@ -6,9 +6,17 @@
 
 A fast, private, cross-platform notes app built with Flutter. Rich-text notes
 with folders, tables, images and checklists — stored locally in SQLite, with no
-account and no cloud lock-in. Part of [bellocloud.com](https://bellocloud.com).
+account and no cloud lock-in.
 
 > Open source, made by [@soufianeblog](https://x.com/soufianeblog).
+
+---
+
+## Screenshots
+
+| Light theme | Dark theme | Right-to-left (Arabic) |
+|:---:|:---:|:---:|
+| [![Light theme — editor](resources/screenshots/1.png)](resources/screenshots/1.png) | [![Dark theme — settings](resources/screenshots/2.png)](resources/screenshots/2.png) | [![Right-to-left Arabic layout](resources/screenshots/3.png)](resources/screenshots/3.png) |
 
 ---
 
@@ -226,3 +234,12 @@ Issues and pull requests are welcome. Please run `flutter analyze` and
 ## License
 
 Released under the MIT License — see [LICENSE](LICENSE).
+
+## Support / Donate
+
+Bello Notes is free and open source. If it's useful to you and you'd like to
+support its development, you can buy me a coffee:
+
+[![Donate](https://img.shields.io/badge/Donate-%E2%9D%A4%EF%B8%8F%20PayPal-0070BA?logo=paypal&logoColor=white)](http://paypal.me/paysoufiane)
+
+> ❤️ [paypal.me/paysoufiane](http://paypal.me/paysoufiane)
