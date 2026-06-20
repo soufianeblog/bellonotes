@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="resources/logo/icon_rounded.png" alt="Bello Notes icon" width="128" height="128">
+  <a href="#"><img src="resources/logo/icon_rounded.png" alt="Bello Notes icon" width="128" height="128"></a>
 </p>
 
 <h1 align="center">Bello Notes</h1>
