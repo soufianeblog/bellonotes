@@ -20,6 +20,30 @@ account and no cloud lock-in.
 
 ---
 
+## Download
+
+Grab the latest build from the [**v1.0.0 release**](https://github.com/soufianeblog/bellonotes/releases/tag/v1.0.0):
+
+| Platform | Download | SHA-256 |
+|---|---|---|
+| **macOS** | [BelloNotes-1.0.0.dmg](https://github.com/soufianeblog/bellonotes/releases/download/v1.0.0/BelloNotes-1.0.0.dmg) | `f56eda4a61f596e5156b29734dc6e2d5ac2c314460aa4e1c56b58b4806449454` |
+| **Android** | [BelloNotes-1.0.0.apk](https://github.com/soufianeblog/bellonotes/releases/download/v1.0.0/BelloNotes-1.0.0.apk) | `4189cb52444079528d728ddf71bf193250d5ee9528c1e958c861eaf5f76bbe36` |
+
+macOS: open the DMG and drag **Bello Notes** onto **Applications**. The app is
+ad-hoc signed (not notarized), so on first launch right-click it → **Open**, or run
+`xattr -dr com.apple.quarantine "/Applications/Bello Notes.app"`.
+Android: sideload the APK (enable "Install unknown apps"). Windows, Linux and Web
+build from source — see [Install](#install-one-line) below.
+
+Verify a download:
+
+```bash
+shasum -a 256 BelloNotes-1.0.0.dmg    # macOS / Linux
+certutil -hashfile BelloNotes-1.0.0.apk SHA256   # Windows
+```
+
+---
+
 ## Features
 
 - **Rich text editor** — headings, bold/italic/underline, colours, highlights,
