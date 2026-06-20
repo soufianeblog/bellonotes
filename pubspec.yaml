@@ -36,6 +36,37 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   path_provider_platform_interface: ^2.1.0
   plugin_platform_interface: ^2.1.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
+# App launcher icons for every platform, generated from resources/logo/.
+# Regenerate after changing the artwork with:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "resources/logo/logo.png"
+  # Android: legacy mipmaps + adaptive icon (padded foreground on white).
+  android: "ic_launcher"
+  min_sdk_android: 21
+  # Brand-yellow background so the white note card stands out inside the
+  # launcher mask (the generated XML insets the full-bleed artwork 16% so the
+  # whole notepad stays visible and centered).
+  adaptive_icon_background: "#F5A623"
+  adaptive_icon_foreground: "resources/logo/logo.png"
+  # iOS rejects an alpha channel — flatten it onto white.
+  ios: true
+  remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"
+  web:
+    generate: true
+    image_path: "resources/logo/logo.png"
+    background_color: "#FFFFFF"
+    theme_color: "#F5A623"
+  windows:
+    generate: true
+    image_path: "resources/logo/logo.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "resources/logo/logo.png"
