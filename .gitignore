@@ -74,3 +74,6 @@ app.*.map.json
 TODO/
 **/remove/
 scratch/
+
+# Local release artifacts (DMG/APK)
+dist/

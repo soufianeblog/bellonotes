@@ -16,7 +16,7 @@ account and no cloud lock-in.
 
 | Light theme | Dark theme | Right-to-left (Arabic) |
 |:---:|:---:|:---:|
-| [![Light theme — editor](resources/screenshots/1.png)](resources/screenshots/1.png) | [![Dark theme — settings](resources/screenshots/2.png)](resources/screenshots/2.png) | [![Right-to-left Arabic layout](resources/screenshots/3.png)](resources/screenshots/3.png) |
+| [![Light theme — editor](https://raw.githubusercontent.com/soufianeblog/bellonotes/main/resources/screenshots/1.png)](https://raw.githubusercontent.com/soufianeblog/bellonotes/main/resources/screenshots/1.png) | [![Dark theme — settings](https://raw.githubusercontent.com/soufianeblog/bellonotes/main/resources/screenshots/2.png)](https://raw.githubusercontent.com/soufianeblog/bellonotes/main/resources/screenshots/2.png) | [![Right-to-left Arabic layout](https://raw.githubusercontent.com/soufianeblog/bellonotes/main/resources/screenshots/3.png)](https://raw.githubusercontent.com/soufianeblog/bellonotes/main/resources/screenshots/3.png) |
 
 ---
 

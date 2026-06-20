@@ -1,4 +1,4 @@
-package com.bellonotes.bellonotes
+package com.bellocloud.notes
 
 import io.flutter.embedding.android.FlutterActivity
 

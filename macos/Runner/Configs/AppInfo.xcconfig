@@ -8,7 +8,7 @@
 PRODUCT_NAME = Bello Notes
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.bellocloud.bellonotes
+PRODUCT_BUNDLE_IDENTIFIER = com.bellocloud.notes
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 bellocloud.com. All rights reserved.
