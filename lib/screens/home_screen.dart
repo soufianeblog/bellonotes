@@ -1,10 +1,8 @@
 // Top-level adaptive shell. Chooses a desktop, tablet or mobile layout based on
 // width and hosts the folder sidebar, notes list, and the right-hand pane
 // (note editor, Settings, or About). Owns sidebar sizing and which pane shows.
-import 'dart:io';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../models/note.dart';
 import '../providers/notes_provider.dart';
@@ -14,6 +12,8 @@ import '../widgets/notes_sidebar.dart';
 import '../widgets/note_editor.dart';
 import '../screens/settings_screen.dart';
 import '../screens/about_screen.dart';
+import '../platform/platform_bridge.dart' as platform;
+import '../utils/desktop_chrome.dart';
 import '../l10n/strings.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -175,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // top-left corner because the window uses a full-size content view. On
       // Windows/Linux the min/max/close controls live in the native title bar
       // above this strip, so no left reservation is needed there.
-      padding: EdgeInsets.only(left: Platform.isMacOS ? 78 : 12),
+      padding: EdgeInsets.only(left: isMacOSDesktop ? 78 : 12),
       color: theme.colorScheme.surfaceContainerLowest,
       child: Row(
         children: [
@@ -675,20 +675,15 @@ class _MobileEditorScreen extends StatelessWidget {
       final name = note.title.isNotEmpty
           ? note.title.replaceAll(RegExp(r'[^\w\s]'), '_').trim()
           : 'note';
-      final savePath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Export Note',
-        fileName: '$name.$ext',
-        allowedExtensions: [ext],
-        type: FileType.custom,
-      );
-      if (savePath == null) return;
       final text = note.plainText.isNotEmpty ? note.plainText : note.content;
-      await File(savePath).writeAsString(text);
+      final saved =
+          await platform.saveText('$name.$ext', text, extensions: [ext]);
+      if (!saved) return;
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Exported to $savePath'),
-              duration: const Duration(seconds: 2)),
+          const SnackBar(
+              content: Text('Exported'),
+              duration: Duration(seconds: 2)),
         );
       }
     } catch (e) {

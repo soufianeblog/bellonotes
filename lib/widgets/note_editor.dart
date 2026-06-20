@@ -4,13 +4,11 @@
 // the largest widget in the app; sections are marked with banner comments.
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/src/packages/quill_markdown/delta_to_markdown.dart';
 import 'package:flutter_quill/src/delta/delta_x.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -20,6 +18,7 @@ import '../providers/folders_provider.dart';
 import '../providers/app_settings.dart';
 import '../services/error_logger.dart';
 import '../services/quill_html.dart';
+import '../platform/platform_bridge.dart' as platform;
 import '../l10n/strings.dart';
 
 /// Identity record used so the editor only rebuilds when something meaningful
@@ -1368,14 +1367,11 @@ class _NoteEditorState extends State<NoteEditor> with WidgetsBindingObserver {
 
   void _attachPhoto(BuildContext context) async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        dialogTitle: 'Choose an image',
-        type: FileType.image,
-        allowMultiple: false,
-      );
-      if (result != null && result.files.single.path != null) {
-        final path = result.files.single.path!;
-        _insertEmbedBlock(BlockEmbed.image(path));
+      // Returns a file path on native and a base64 `data:` URL on the web, so
+      // the image is stored & rendered uniformly across platforms.
+      final ref = await platform.pickImageRef();
+      if (ref != null && ref.isNotEmpty) {
+        _insertEmbedBlock(BlockEmbed.image(ref));
       }
     } catch (e, s) {
       ErrorLogger.instance.error('Insert image failed', details: '$e\n$s');
@@ -1480,13 +1476,6 @@ class _NoteEditorState extends State<NoteEditor> with WidgetsBindingObserver {
           ? note.displayTitle.replaceAll(RegExp(r'[^\w\s]'), '_').trim()
           : 'note';
       final ext = format;
-      final savePath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Export Note',
-        fileName: '$name.$ext',
-        allowedExtensions: [ext],
-        type: FileType.custom,
-      );
-      if (savePath == null) return;
 
       String content;
       if (format == 'md') {
@@ -1505,12 +1494,14 @@ class _NoteEditorState extends State<NoteEditor> with WidgetsBindingObserver {
       } else {
         content = _quillController.document.toPlainText();
       }
-      await File(savePath).writeAsString(content);
+      final saved =
+          await platform.saveText('$name.$ext', content, extensions: [ext]);
+      if (!saved) return;
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Exported to $savePath'),
-              duration: const Duration(seconds: 2)),
+          const SnackBar(
+              content: Text('Exported'),
+              duration: Duration(seconds: 2)),
         );
       }
     } catch (e, s) {
@@ -2228,6 +2219,51 @@ class _TableWidgetState extends State<_TableWidget> {
   }
 }
 
+/// Builds the right image widget for an embed reference, regardless of how the
+/// attachment is stored: an inline base64 `data:` URL (web attachments &
+/// cross-platform imports), an `http(s)` URL, or a local file path (native
+/// attachments). Keeps a single rendering path so notes display identically on
+/// every platform.
+Widget _buildImageSource(String ref, {Key? key, double? width, BoxFit? fit}) {
+  Widget broken(BuildContext context) => Container(
+        height: 100,
+        width: width,
+        color: Colors.grey.shade200,
+        child: const Center(child: Icon(Icons.broken_image, size: 32)),
+      );
+
+  if (ref.startsWith('data:')) {
+    try {
+      final bytes = base64Decode(ref.substring(ref.indexOf(',') + 1));
+      return Image.memory(
+        bytes,
+        key: key,
+        width: width,
+        fit: fit,
+        errorBuilder: (c, _, _) => broken(c),
+      );
+    } catch (_) {
+      return Builder(key: key, builder: broken);
+    }
+  }
+  if (ref.startsWith('http://') || ref.startsWith('https://')) {
+    return Image.network(
+      ref,
+      key: key,
+      width: width,
+      fit: fit,
+      errorBuilder: (c, _, _) => broken(c),
+    );
+  }
+  return platform.buildFileImage(
+    ref,
+    imageKey: key,
+    width: width,
+    fit: fit,
+    errorBuilder: broken,
+  );
+}
+
 /// Renders an image embed. Data is either a plain file path (legacy) or JSON:
 /// `{"path": ..., "width": 400, "link": "https://..."}`. Tapping (in an
 /// editable note) opens a menu to resize, add/edit a link, or delete it.
@@ -2433,17 +2469,11 @@ class _ImageWidgetState extends State<_ImageWidget> {
         borderRadius: BorderRadius.circular(8),
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: w == null ? 300 : 2000),
-          child: Image.file(
-            File(widget.path),
+          child: _buildImageSource(
+            widget.path,
             key: _imgKey,
             width: w,
             fit: w == null ? BoxFit.contain : BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
-              height: 100,
-              width: w,
-              color: Colors.grey.shade200,
-              child: const Center(child: Icon(Icons.broken_image, size: 32)),
-            ),
           ),
         ),
       );

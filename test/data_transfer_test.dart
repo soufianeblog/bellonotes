@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:bellonotes/models/note.dart';
@@ -32,17 +33,18 @@ void main() {
       modifiedAt: DateTime(2024),
     ));
 
-    final zipPath = p.join(testTempDir.path, 'backup.zip');
-    final exported = await DataTransferService.exportToZip(zipPath);
+    var exported = 0;
+    final bytes = await DataTransferService.exportToBytes(
+        outNoteCount: (n) => exported = n);
     expect(exported, 1);
-    expect(await File(zipPath).exists(), isTrue);
+    expect(bytes, isNotEmpty);
 
     // Wipe everything by permanently deleting, then re-import.
     await DatabaseService.permanentlyDeleteNote('n1');
     await DatabaseService.permanentlyDeleteFolder('f1');
     expect((await DatabaseService.getAllNotesRaw()), isEmpty);
 
-    final imported = await DataTransferService.importFromZip(zipPath);
+    final imported = await DataTransferService.importFromBytes(bytes);
     expect(imported, 1);
     final notes = await DatabaseService.getAllNotesRaw();
     final folders = await DatabaseService.getAllFoldersRaw();
@@ -71,14 +73,13 @@ void main() {
       modifiedAt: DateTime(2024),
     ));
 
-    final zipPath = p.join(testTempDir.path, 'backup.zip');
-    await DataTransferService.exportToZip(zipPath);
+    final bytes = await DataTransferService.exportToBytes();
 
     // Remove original note + source image to simulate a fresh machine.
     await DatabaseService.permanentlyDeleteNote('n1');
     await File(imgPath).delete();
 
-    await DataTransferService.importFromZip(zipPath);
+    await DataTransferService.importFromBytes(bytes);
     final note = (await DatabaseService.getAllNotesRaw()).first;
     final ops = jsonDecode(note.content) as List;
     final imageOp = ops.firstWhere((o) => o['insert'] is Map);
@@ -111,11 +112,10 @@ void main() {
       modifiedAt: DateTime(2024),
     ));
 
-    final zipPath = p.join(testTempDir.path, 'backup.zip');
-    await DataTransferService.exportToZip(zipPath);
+    final bytes = await DataTransferService.exportToBytes();
     await DatabaseService.permanentlyDeleteNote('n1');
     await File(imgPath).delete();
-    await DataTransferService.importFromZip(zipPath);
+    await DataTransferService.importFromBytes(bytes);
 
     final note = (await DatabaseService.getAllNotesRaw()).first;
     final ops = jsonDecode(note.content) as List;
@@ -131,18 +131,50 @@ void main() {
     expect(embed['link'], 'https://example.com');
   });
 
-  test('importing missing file throws but does not corrupt db', () async {
+  test('data: URL images stay inline and are not extracted', () async {
+    // A web-style attachment: a base64 data URL embedded directly in content.
+    const dataUrl = 'data:image/png;base64,AQIDBA==';
+    final delta = jsonEncode([
+      {'insert': 'inline\n'},
+      {
+        'insert': {'image': dataUrl}
+      },
+    ]);
+    await DatabaseService.insertNote(Note(
+      id: 'n1',
+      content: delta,
+      createdAt: DateTime(2024),
+      modifiedAt: DateTime(2024),
+    ));
+
+    final bytes = await DataTransferService.exportToBytes();
+    await DatabaseService.permanentlyDeleteNote('n1');
+    await DataTransferService.importFromBytes(bytes);
+
+    final note = (await DatabaseService.getAllNotesRaw()).first;
+    final ops = jsonDecode(note.content) as List;
+    final imageOp = ops.firstWhere((o) => o['insert'] is Map);
+    // The data URL must come back unchanged (never rewritten to images/...).
+    expect(imageOp['insert']['image'], dataUrl);
+  });
+
+  test('importing corrupt bytes does not corrupt db', () async {
     await DatabaseService.insertNote(Note(
       id: 'keep',
       content: 'keep me',
       createdAt: DateTime(2024),
       modifiedAt: DateTime(2024),
     ));
-    await expectLater(
-      DataTransferService.importFromZip(
-          p.join(testTempDir.path, 'does_not_exist.zip')),
-      throwsA(anything),
-    );
-    expect((await DatabaseService.getAllNotesRaw()).length, 1);
+    // Garbage bytes must never damage existing data: the import either throws
+    // or imports nothing, and the kept note survives either way.
+    try {
+      await DataTransferService.importFromBytes(
+          Uint8List.fromList(utf8.encode('not a zip archive')));
+    } catch (_) {
+      // Acceptable — see above.
+    }
+    final notes = await DatabaseService.getAllNotesRaw();
+    expect(notes.length, 1);
+    expect(notes.first.id, 'keep');
   });
 }

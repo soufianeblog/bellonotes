@@ -1,15 +1,15 @@
 // Settings page: appearance (theme/accent/language), editor defaults, sort
 // order, security (lock password), data export/import, and diagnostics. Shown
 // embedded in the desktop right-pane or pushed as a route on mobile.
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_settings.dart';
 import '../providers/notes_provider.dart';
 import '../providers/folders_provider.dart';
 import '../services/data_transfer_service.dart';
 import '../services/error_logger.dart';
+import '../platform/platform_bridge.dart' as platform;
+import '../utils/desktop_chrome.dart';
 import '../l10n/strings.dart';
 import 'error_log_screen.dart';
 
@@ -24,9 +24,9 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<AppSettings>();
     final s = S.of(context);
-    final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
-    // Pushed as a standalone route on mobile (not embedded, not desktop): give
-    // it a real AppBar so there's a back button.
+    final isDesktop = isDesktopChrome;
+    // Pushed as a standalone route on mobile/web (not embedded, not desktop):
+    // give it a real AppBar so there's a back button.
     final isMobileRoute = !isDesktop && onClose == null;
 
     return Scaffold(
@@ -121,18 +121,18 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _exportAll(BuildContext context, S s) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
+      var count = 0;
+      final bytes = await DataTransferService.exportToBytes(
+          outNoteCount: (n) => count = n);
       final ts = DateTime.now().toIso8601String().split('T').first;
-      final path = await FilePicker.platform.saveFile(
-        dialogTitle: s.exportAllData,
-        fileName: 'bellonotes_backup_$ts.zip',
-        allowedExtensions: ['zip'],
-        type: FileType.custom,
+      final saved = await platform.saveBytes(
+        'bellonotes_backup_$ts.zip',
+        bytes,
+        extensions: ['zip'],
       );
-      if (path == null) return;
-      final dest = path.endsWith('.zip') ? path : '$path.zip';
-      final count = await DataTransferService.exportToZip(dest);
+      if (!saved) return;
       messenger.showSnackBar(
-        SnackBar(content: Text('${s.exportAllData}: $count → $dest')),
+        SnackBar(content: Text('${s.exportAllData}: $count')),
       );
     } catch (e, st) {
       ErrorLogger.instance.error('Data export failed', details: '$e\n$st');
@@ -145,14 +145,9 @@ class SettingsScreen extends StatelessWidget {
     final notesProvider = context.read<NotesProvider>();
     final foldersProvider = context.read<FoldersProvider>();
     try {
-      final result = await FilePicker.platform.pickFiles(
-        dialogTitle: s.importData,
-        type: FileType.custom,
-        allowedExtensions: ['zip'],
-      );
-      final path = result?.files.single.path;
-      if (path == null) return;
-      final count = await DataTransferService.importFromZip(path);
+      final picked = await platform.pickBytes(extensions: ['zip']);
+      if (picked == null) return;
+      final count = await DataTransferService.importFromBytes(picked.bytes);
       await foldersProvider.loadFolders();
       await notesProvider.loadNotes(folderId: 'all');
       messenger.showSnackBar(
@@ -171,7 +166,7 @@ class SettingsScreen extends StatelessWidget {
     final embedded = onClose != null;
     // Only a full-window macOS title bar needs to clear the traffic lights; an
     // embedded pane (and Windows/Linux) does not.
-    final leftPad = embedded ? 8.0 : (Platform.isMacOS ? 78.0 : 12.0);
+    final leftPad = embedded ? 8.0 : (isMacOSDesktop ? 78.0 : 12.0);
     return Container(
       height: 38,
       padding: EdgeInsets.only(left: leftPad),

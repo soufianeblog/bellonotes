@@ -60,15 +60,16 @@ ${C_BOLD}Bello Notes installer${C_RESET}
 Usage: install.sh [options]
 
 Options:
-  --platform <p>   Target platform: macos | linux | android | auto (default: auto)
+  --platform <p>   Target platform: macos | linux | android | web | auto (default: auto)
   --yes            Non-interactive: assume "yes" to every prompt
-  --no-install     Build the app but do not install it onto the system
+  --no-install     Build the app but do not install/serve it
   --help           Show this help
 
 Examples:
   ./scripts/install.sh                 # interactive, auto-detect desktop platform
   ./scripts/install.sh --yes           # unattended desktop install
   ./scripts/install.sh --platform android
+  ./scripts/install.sh --platform web  # build the web app + serve it locally
 EOF
 }
 
@@ -191,6 +192,10 @@ ensure_platform_toolchain() {
       fi
       flutter doctor --android-licenses >/dev/null 2>&1 || true
       ;;
+    web)
+      # Web support ships with the Flutter SDK; just make sure it's enabled.
+      flutter config --enable-web >/dev/null 2>&1 || true
+      ;;
   esac
 }
 
@@ -228,6 +233,7 @@ build_app() {
     macos)   flutter build macos --release ;;
     linux)   flutter build linux --release ;;
     android) flutter build apk --release ;;
+    web)     flutter build web --release ;;
     *) die "Unknown platform: $PLATFORM" ;;
   esac
   ok "Build complete."
@@ -277,6 +283,27 @@ DESKTOP
       else
         ok "APK built: $REPO_DIR/$apk"
         info "Copy it to your phone and open it, or connect a device and run: adb install -r \"$apk\""
+      fi
+      ;;
+    web)
+      local out="build/web"
+      [ -d "$out" ] || die "Web build output not found: $out"
+      ok "Web app built: $REPO_DIR/$out"
+      info "Deploy the contents of '$out/' to any static host (GitHub Pages,"
+      info "Netlify, Vercel, Firebase Hosting, S3, nginx, …). Note: the app must"
+      info "be served over HTTP(S), not opened as a file:// URL."
+      if [ "$ASSUME_YES" -eq 1 ]; then
+        warn "Unattended mode: not starting a local server."
+        return
+      fi
+      if confirm "Serve it locally now at http://localhost:8080 ?"; then
+        if have python3; then
+          info "Serving $out/ — press Ctrl+C to stop."
+          ( cd "$out" && python3 -m http.server 8080 )
+        else
+          info "Python 3 not found; serving via Flutter instead."
+          flutter run -d web-server --web-port 8080 --release
+        fi
       fi
       ;;
   esac

@@ -1,11 +1,11 @@
 // Diagnostics screen that displays the in-memory error/warn/info log captured
 // by [ErrorLogger], with copy-to-clipboard and export-to-file actions. Reached
 // from Settings → Diagnostics.
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
 import '../services/error_logger.dart';
+import '../platform/platform_bridge.dart' as platform;
+import '../utils/desktop_chrome.dart';
 import '../l10n/strings.dart';
 
 class ErrorLogScreen extends StatefulWidget {
@@ -47,8 +47,7 @@ class _ErrorLogScreenState extends State<ErrorLogScreen> {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final entries = ErrorLogger.instance.entries.reversed.toList();
-    final isDesktop =
-        Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+    final isDesktop = isDesktopChrome;
 
     return Scaffold(
       appBar: isDesktop
@@ -121,16 +120,13 @@ class _ErrorLogScreenState extends State<ErrorLogScreen> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final ts = DateTime.now().toIso8601String().replaceAll(':', '-');
-      final path = await FilePicker.platform.saveFile(
-        dialogTitle: s.exportLogs,
-        fileName: 'bellonotes_logs_$ts.txt',
-        allowedExtensions: ['txt'],
-        type: FileType.custom,
+      final saved = await platform.saveText(
+        'bellonotes_logs_$ts.txt',
+        ErrorLogger.instance.exportText(),
+        extensions: ['txt'],
       );
-      if (path == null) return;
-      final dest = path.endsWith('.txt') ? path : '$path.txt';
-      await File(dest).writeAsString(ErrorLogger.instance.exportText());
-      messenger.showSnackBar(SnackBar(content: Text(dest)));
+      if (!saved) return;
+      messenger.showSnackBar(SnackBar(content: Text(s.exportLogs)));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }

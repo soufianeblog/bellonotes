@@ -1,12 +1,14 @@
 // ChangeNotifier holding user preferences — theme, accent color, language,
-// default note format/size, sort order, lock password — persisted to a JSON
-// file in the app documents directory and reloaded on launch.
+// default note format/size, sort order, lock password — persisted via the
+// platform bridge (a JSON file on native, localStorage on the web) and reloaded
+// on launch.
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
+import '../platform/platform_bridge.dart';
 import '../providers/notes_provider.dart';
+
+/// Persistence key (also the on-disk file name on native platforms).
+const String kSettingsKey = 'bellonotes_settings.json';
 
 class AppSettings extends ChangeNotifier {
   Locale _locale = const Locale('en');
@@ -42,10 +44,9 @@ class AppSettings extends ChangeNotifier {
 
   Future<void> _load() async {
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File(p.join(dir.path, 'bellonotes_settings.json'));
-      if (await file.exists()) {
-        final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final raw = await readLocal(kSettingsKey);
+      if (raw != null && raw.isNotEmpty) {
+        final json = jsonDecode(raw) as Map<String, dynamic>;
         final loc = json['locale'] as String?;
         if (loc != null) _locale = Locale(loc);
         final theme = json['theme'] as String?;
@@ -71,9 +72,7 @@ class AppSettings extends ChangeNotifier {
 
   Future<void> _save() async {
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File(p.join(dir.path, 'bellonotes_settings.json'));
-      await file.writeAsString(jsonEncode({
+      await writeLocal(kSettingsKey, jsonEncode({
         'locale': _locale.languageCode,
         'theme': _themeMode == ThemeMode.light
             ? 'light'

@@ -1,36 +1,19 @@
 // Local SQLite persistence layer for notes and folders. Owns the schema,
-// migrations, and all CRUD queries. Uses the FFI SQLite backend on desktop and
-// the default sqflite backend on mobile. All state-holders go through here.
+// migrations, and all CRUD queries. The actual database is opened by the
+// platform bridge: FFI SQLite on desktop, the default sqflite backend on
+// mobile, and an IndexedDB-backed SQLite (WASM) on the web. All state-holders
+// go through here.
 import 'dart:convert';
-import 'dart:io';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import '../platform/platform_bridge.dart';
 import '../models/note.dart';
 import '../models/folder.dart';
 
 class DatabaseService {
   static Database? _database;
-  static bool _ffiInitialized = false;
   static const int _dbVersion = 2;
-
-  static Future<void> _ensureFfi() async {
-    if (_ffiInitialized) return;
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      // Load the bundled native SQLite (FFI) library. We deliberately do NOT
-      // assign the global `databaseFactory`: the desktop path in
-      // [_initDatabase] opens via `databaseFactoryFfi.openDatabase(...)`
-      // directly, so overriding the global factory is unnecessary — and doing
-      // so makes sqflite print a noisy "changing sqflite default factory"
-      // warning on every launch.
-      sqfliteFfiInit();
-    }
-    _ffiInitialized = true;
-  }
 
   static Future<Database> get database async {
     if (_database != null) return _database!;
-    await _ensureFfi();
     _database = await _initDatabase();
     return _database!;
   }
@@ -42,27 +25,11 @@ class DatabaseService {
   }
 
   static Future<Database> _initDatabase() async {
-    final dir = await getApplicationDocumentsDirectory();
-
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      final dbPath = p.join(dir.path, 'bellonotes.db');
-      return await databaseFactoryFfi.openDatabase(
-        dbPath,
-        options: OpenDatabaseOptions(
-          version: _dbVersion,
-          onCreate: _onCreate,
-          onUpgrade: _onUpgrade,
-        ),
-      );
-    }
-
-    final dbPath = p.join(dir.path, 'bellonotes.db');
-    return await openDatabase(
-      dbPath,
+    return openAppDatabase(OpenDatabaseOptions(
       version: _dbVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
-    );
+    ));
   }
 
   static Future<void> _onCreate(Database db, int version) async {

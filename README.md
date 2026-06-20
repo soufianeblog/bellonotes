@@ -34,7 +34,13 @@ account and no cloud lock-in. Part of [bellocloud.com](https://bellocloud.com).
 | Windows  | ✅ | `.exe` + bundle |
 | Android  | ✅ | `.apk` |
 | Linux    | ✅ | bundle + `.desktop` launcher |
+| Web      | ✅ | static site (`build/web/`) |
 | iOS      | ⚙️ buildable | `.app` (no installer script) |
+
+On the web, storage uses an IndexedDB-backed SQLite database (compiled to
+WebAssembly) instead of a native SQLite file, image attachments are stored
+inline in the note, and export/import use a browser download / file upload — so
+your notes still live entirely in your own browser, with no account or server.
 
 ---
 
@@ -80,6 +86,22 @@ From a checkout (with a phone connected and USB debugging enabled):
 .\scripts\install.ps1 -Platform android -Yes      # Windows
 ```
 
+### Web
+
+Builds the static web app into `build/web/` and offers to serve it locally:
+
+```bash
+# Interactive (builds, then offers to serve at http://localhost:8080)
+./scripts/install.sh --platform web              # macOS / Linux
+.\scripts\install.ps1 -Platform web               # Windows
+
+# Unattended (build only, no local server)
+./scripts/install.sh --platform web --yes        # macOS / Linux
+.\scripts\install.ps1 -Platform web -Yes          # Windows
+```
+
+See [Deploy (Web)](#deploy-web) below to publish the build to a static host.
+
 The script builds a release APK and, if a device is detected over `adb`, offers
 to install it. Otherwise it prints the APK path so you can copy it to your phone.
 
@@ -121,6 +143,10 @@ flutter build macos --release      # → build/macos/Build/Products/Release/Bell
 flutter build windows --release    # → build/windows/x64/runner/Release/
 flutter build linux --release      # → build/linux/<arch>/release/bundle/
 flutter build apk --release        # → build/app/outputs/flutter-apk/app-release.apk
+flutter build web --release        # → build/web/
+
+# Run the web app locally during development
+flutter run -d chrome              # or: flutter run -d web-server --web-port 8080
 ```
 
 Run `flutter doctor` to confirm your platform toolchain is set up.
@@ -130,6 +156,39 @@ Run `flutter doctor` to confirm your platform toolchain is set up.
 ```bash
 flutter analyze
 flutter test
+```
+
+---
+
+## Deploy (Web)
+
+`flutter build web --release` produces a self-contained static site in
+`build/web/` (HTML/JS/CSS plus the bundled SQLite WebAssembly worker —
+`sqlite3.wasm` and `sqflite_sw.js`). Upload that folder to any static host. It
+**must be served over HTTP(S)** — opening `index.html` as a `file://` URL won't
+work because the SQLite web worker can't load.
+
+```bash
+flutter build web --release
+```
+
+Then deploy `build/web/`:
+
+- **GitHub Pages** — push the contents of `build/web/` to a `gh-pages` branch (or
+  a `/docs` folder on `main`) and enable Pages. If hosting under a sub-path
+  (e.g. `https://user.github.io/bellonotes/`), build with a matching base href:
+  `flutter build web --release --base-href /bellonotes/`.
+- **Netlify / Vercel** — set the build command to `flutter build web --release`
+  and the publish directory to `build/web`.
+- **Firebase Hosting** — `firebase init hosting` with public dir `build/web`,
+  then `firebase deploy`.
+- **Any static server / CDN / S3 / nginx** — serve the `build/web/` directory
+  as-is.
+
+Quick local preview of a production build:
+
+```bash
+cd build/web && python3 -m http.server 8080   # then open http://localhost:8080
 ```
 
 ---
@@ -145,6 +204,8 @@ lib/
   screens/                  Full-page UIs: home, settings, about, error log
   widgets/                  Reusable UI: editor, folder sidebar, notes sidebar
   services/                 Non-UI logic: SQLite, export/import, HTML, logging
+  platform/                 Platform bridge (native vs web) via conditional imports
+  utils/                    Small web-safe helpers (e.g. desktop chrome detection)
 scripts/                    One-command installers (install.sh / install.ps1)
 test/                       Unit & widget tests
 ```

@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../utils/desktop_chrome.dart';
 import '../l10n/strings.dart';
 
 /// Standalone "About" page for Bello Notes.
@@ -42,9 +42,9 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final theme = Theme.of(context);
-    final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
-    // Pushed as a standalone route on mobile (not embedded, not desktop): give
-    // it a real AppBar so there's a back button.
+    final isDesktop = isDesktopChrome;
+    // Pushed as a standalone route on mobile/web (not embedded, not desktop):
+    // give it a real AppBar so there's a back button.
     final isMobileRoute = !isDesktop && onClose == null;
 
     return Scaffold(
@@ -144,7 +144,7 @@ class AboutScreen extends StatelessWidget {
     final embedded = onClose != null;
     // Only a full-window macOS title bar needs to clear the traffic lights; an
     // embedded pane (and Windows/Linux) does not.
-    final leftPad = embedded ? 8.0 : (Platform.isMacOS ? 78.0 : 12.0);
+    final leftPad = embedded ? 8.0 : (isMacOSDesktop ? 78.0 : 12.0);
     return Container(
       height: 38,
       padding: EdgeInsets.only(left: leftPad),

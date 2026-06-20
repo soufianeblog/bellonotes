@@ -14,13 +14,13 @@
     -Yes for a fully unattended run.
 
 .PARAMETER Platform
-    Target platform: windows | android. Default: windows.
+    Target platform: windows | android | web. Default: windows.
 
 .PARAMETER Yes
     Non-interactive: assume "yes" to every prompt.
 
 .PARAMETER NoInstall
-    Build the app but do not install it.
+    Build the app but do not install/serve it.
 
 .EXAMPLE
     .\scripts\install.ps1
@@ -28,10 +28,12 @@
     .\scripts\install.ps1 -Yes
 .EXAMPLE
     .\scripts\install.ps1 -Platform android
+.EXAMPLE
+    .\scripts\install.ps1 -Platform web
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('windows', 'android')]
+    [ValidateSet('windows', 'android', 'web')]
     [string]$Platform = 'windows',
     [switch]$Yes,
     [switch]$NoInstall
@@ -121,6 +123,10 @@ function Ensure-PlatformToolchain {
                 Write-Warn2 "Android toolchain incomplete. Install Android Studio (and run 'flutter doctor --android-licenses')."
             }
         }
+        'web' {
+            # Web support ships with Flutter; just make sure it's enabled.
+            flutter config --enable-web | Out-Null
+        }
     }
 }
 
@@ -151,6 +157,7 @@ function Build-App {
     switch ($Platform) {
         'windows' { flutter build windows --release }
         'android' { flutter build apk --release }
+        'web'     { flutter build web --release }
     }
     Write-Ok "Build complete."
 }
@@ -189,6 +196,19 @@ function Install-App {
             } else {
                 Write-Ok "APK built: $apk"
                 Write-Info "Copy it to your phone and open it, or connect a device and run: adb install -r `"$apk`""
+            }
+        }
+        'web' {
+            $out = Join-Path $RepoDir 'build\web'
+            if (-not (Test-Path $out)) { Die "Web build output not found: $out" }
+            Write-Ok "Web app built: $out"
+            Write-Info "Deploy the contents of '$out\' to any static host (GitHub Pages,"
+            Write-Info "Netlify, Vercel, Firebase Hosting, S3, IIS, …). Serve over HTTP(S),"
+            Write-Info "not as a file:// URL."
+            if ($Yes) { Write-Warn2 "Unattended mode: not starting a local server."; return }
+            if (Confirm-Step "Serve it locally now at http://localhost:8080 ?") {
+                Write-Info "Serving via Flutter — press Ctrl+C to stop."
+                flutter run -d web-server --web-port 8080 --release
             }
         }
     }

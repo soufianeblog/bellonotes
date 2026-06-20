@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import '../platform/platform_bridge.dart' as platform;
 
 /// A single logged entry.
 class LogEntry {
@@ -32,7 +30,6 @@ class ErrorLogger {
   static const int _maxEntries = 500;
   final ListQueue<LogEntry> _entries = ListQueue<LogEntry>();
   final ValueNotifier<int> revision = ValueNotifier<int>(0);
-  File? _file;
   bool _initialized = false;
 
   List<LogEntry> get entries => _entries.toList(growable: false);
@@ -40,12 +37,8 @@ class ErrorLogger {
   Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      _file = File(p.join(dir.path, 'bellonotes_errors.log'));
-    } catch (_) {
-      // If we cannot resolve a directory we still keep the in-memory buffer.
-    }
+    // Native platforms append to a log file via the bridge; the web keeps the
+    // in-memory buffer only. Nothing to set up here.
   }
 
   /// Installs global handlers so uncaught framework + zone errors are captured.
@@ -86,24 +79,14 @@ class ErrorLogger {
   }
 
   Future<void> _appendToFile(LogEntry entry) async {
-    final file = _file;
-    if (file == null) return;
-    try {
-      await file.writeAsString('${entry.toString()}\n',
-          mode: FileMode.append, flush: false);
-    } catch (_) {
-      // Never let logging throw.
-    }
+    // Never let logging throw (the bridge swallows its own IO errors).
+    await platform.appendLog('${entry.toString()}\n');
   }
 
   Future<void> clear() async {
     _entries.clear();
     revision.value++;
-    try {
-      if (_file != null && await _file!.exists()) {
-        await _file!.writeAsString('');
-      }
-    } catch (_) {}
+    await platform.clearLog();
   }
 
   String exportText() => _entries.map((e) => e.toString()).join('\n\n');
